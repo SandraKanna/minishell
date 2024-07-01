@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   minishell.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: derjavec <derjavec@student.42.fr>          +#+  +:+       +#+        */
+/*   By: skanna <skanna@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/08 17:03:16 by skanna            #+#    #+#             */
-/*   Updated: 2024/07/01 15:26:52 by derjavec         ###   ########.fr       */
+/*   Updated: 2024/07/01 15:35:06 by skanna           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@ static char	**no_env(t_mini *mini)
 	char	**envp;
 	char	cwd[1024];
 
-	printf("entra\n");
 	envp = malloc(4 * sizeof(char *));
 	if (envp == NULL)
 		return (ft_error(mini, NULL, strerror(errno)), NULL);
@@ -26,15 +25,12 @@ static char	**no_env(t_mini *mini)
 	envp[0] = ft_strjoin("PWD=", cwd);
 	if (!envp[0])
 		return (free_tab(envp), ft_error(mini, NULL, strerror(errno)), NULL);
-	printf("%s\n", envp[0]);
 	envp[1] = ft_strdup("SHLVL=1");
 	if (!envp[1])
 		return (free_tab(envp), ft_error(mini, NULL, strerror(errno)), NULL);
-	printf("%s\n", envp[1]);
 	envp[2] = ft_strdup("PATH=/usr/bin/");
 	if (!envp[2])
 		return (free_tab(envp), ft_error(mini, NULL, strerror(errno)), NULL);
-	printf("%s\n", envp[2]);
 	envp[3] = NULL;
 	return (envp);
 }
@@ -50,15 +46,9 @@ static t_mini	*init_minishell(char **envp)
 		exit(1);
 	}
 	ft_bzero(mini, sizeof(t_mini));
-	if (envp == NULL)
-		envp = no_env(mini);
 	if (envp[0] == NULL)
-		return (NULL);
-	// int j = 0;
-	// while (envp[j])
-	// 	printf("%s\n", envp[j++]);
+		envp = no_env(mini);
 	mini->env = fill_env_struct(envp, mini);
-	// printf("%s\n", mini->env->name);
 	return (mini);
 }
 

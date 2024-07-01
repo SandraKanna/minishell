@@ -6,7 +6,7 @@
 /*   By: skanna <skanna@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/08 17:03:22 by skanna            #+#    #+#             */
-/*   Updated: 2024/07/01 16:20:26 by skanna           ###   ########.fr       */
+/*   Updated: 2024/07/01 16:59:58 by skanna           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,13 @@ int	exec_script(t_mini *mini, t_token *tmp)
 	{
 		script = open(name, O_RDONLY);
 		if (script == -1)
-			return (ft_error(mini, NULL, strerror(errno)), 1);
+		{
+        printf("Debug: Attempted to open '%s', result = %d, errno = %d (%s)\n", name, script, errno, strerror(errno));			
+			if (errno == EISDIR)
+				return (ft_error(mini, " Is a directory", NULL), 1);
+			else
+				return (ft_error(mini, NULL, strerror(errno)), 1);
+		}
 		if (ft_strncmp(name + ft_strlen(name) - 3, ".sh", 3) == 0)
 			args[0] = get_shebang(mini, script);
 		close(script);
@@ -86,7 +92,11 @@ int	exec_script(t_mini *mini, t_token *tmp)
 		args[2] = NULL;
 		if (execve(args[0], args, mini->env_char) == -1)
 		{
-			ft_error(mini, "", strerror(errno));
+			printf("Debug: execve failed, errno = %d (%s)\n", errno, strerror(errno));
+			if (errno == EISDIR)
+				ft_error(mini, " Is a directory", NULL);
+			else
+				ft_error(mini, NULL, strerror(errno));
 			return (close(script), 1);
 		}
 	}

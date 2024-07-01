@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   execution.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: derjavec <derjavec@student.42.fr>          +#+  +:+       +#+        */
+/*   By: skanna <skanna@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/08 17:03:22 by skanna            #+#    #+#             */
-/*   Updated: 2024/07/01 14:10:22 by derjavec         ###   ########.fr       */
+/*   Updated: 2024/07/01 16:38:08 by skanna           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,44 +42,34 @@ static void	close_fd_and_wait(t_mini *mini)
 static void	close_all_fd(t_mini *mini)
 {
 	int	i;
+	int	j;
 
 	i = 0;
 	while (i < mini->cmd_count)
 	{
-		if (i < mini->cmd_count - 1)
+		if (mini->inv_fd[i] == 1)
 		{
-			if (mini->tube[i][1])
-				close(mini->tube[i][1]);
-			if (mini->tube[i][0])
-				close(mini->tube[i][0]);
+			j = 0;
+			while (j < mini->cmd_count)
+			{
+				if (j < mini->cmd_count - 1)
+				{
+					if (mini->tube[j][1])
+						close(mini->tube[j][1]);
+					if (mini->tube[j][0])
+						close(mini->tube[j][0]);
+				}
+				if (mini->fd_in[j] > 0 && mini->fd_in[j] != STDIN_FILENO)
+					close(mini->fd_in[j]);
+				if (mini->fd_out[j] != STDOUT_FILENO)
+					close(mini->fd_out[j]);
+				j++;
+			}
+			ft_putstr_fd(" No such file or directory\n", 2);
+			clean_minishell(mini);
+			exit (1);
 		}
-		if (mini->fd_in[i] > 0 && mini->fd_in[i] != STDIN_FILENO)
-			close(mini->fd_in[i]);
-		if (mini->fd_out[i] != STDOUT_FILENO)
-			close(mini->fd_out[i]);
 		i++;
-	}
-}
-
-static void	close_if_inv_fd(t_mini *mini, int i)
-{
-	int	j;
-
-	j = i;
-	while (j < mini->cmd_count)
-	{
-		if (mini->inv_fd[j] == 1)
-		{
-			close_all_fd(mini);
-			break ;
-		}
-		j++;
-	}
-	if (mini->inv_fd[i] == 1)
-	{
-		ft_putstr_fd(" No such file or directory\n", 2);
-		clean_minishell(mini);
-		exit (1);
 	}
 }
 
@@ -87,7 +77,7 @@ static void	child_pid(t_mini *mini, t_token *tmp, int i)
 {
 	int		builtin;
 
-	close_if_inv_fd(mini, i);
+	close_all_fd(mini);
 	if (ft_dup(mini, i) != 0)
 	{
 		clean_minishell(mini);
@@ -103,7 +93,6 @@ static void	child_pid(t_mini *mini, t_token *tmp, int i)
 		clean_minishell(mini);
 		exit (1);
 	}
-	close_all_fd(mini);
 	clean_minishell(mini);
 	exit (0);
 }
@@ -141,6 +130,7 @@ static int	builtin_in_parent(t_mini *mini, int builtin)
 	int		original_stdin;
 	int		original_stdout;
 
+	// printf("inv %d\n", mini->inv_fd[0]);
 	original_stdin = dup(STDIN_FILENO);
 	original_stdout = dup(STDOUT_FILENO);
 	if (mini->inv_fd[0] == 1)
@@ -148,13 +138,20 @@ static int	builtin_in_parent(t_mini *mini, int builtin)
 	tmp = mini->token;
 	while (tmp->type != COMMAND)
 		tmp = tmp->next;
-	if (ft_dup(mini, 0) != 0)
-		return (ft_error(mini, NULL, strerror(errno)), -1);
+	if (mini->fd_in[0] > 0)
+	{
+		if (dup2(mini->fd_in[0], STDIN_FILENO) == -1)
+			return (ft_error(mini, "dup2 stdin error", NULL), -1);
+	}
+	if (mini->fd_out[0] > 1)
+	{
+		if (dup2(mini->fd_out[0], STDOUT_FILENO) == -1)
+			return (ft_error(mini, "dup2 stdin error", NULL), -1);
+
+	}
 	if (mini->cmd_count == 1)
 	{
 		execute_builtin(mini, builtin, mini->token);
-		if (mini->error == 1)
-			return (-1);
 		dup2(original_stdin, STDIN_FILENO);
 		dup2(original_stdout, STDOUT_FILENO);
 		close(original_stdin);
